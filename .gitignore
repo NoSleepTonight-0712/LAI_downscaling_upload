@@ -1,0 +1,10 @@
+__pycache__/
+training_result/LAI/
+.vscode/
+
+*.tif
+*.zip
+*.npy
+*.jpg
+*.png
+*.pdf
