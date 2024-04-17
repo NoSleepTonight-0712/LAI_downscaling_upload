@@ -1,3 +1,5 @@
+# Note that the output data should be furtherly resample from ~0.07 to 0.05 to reach the final result.
+
 from importlib import import_module
 
 from utils.const.variable_const import FutureExperiment, Predictand

@@ -31,7 +31,7 @@ from utils.io.DataReader import getGCMOriginPack
 #     return (data - mean_value) / (std_value)
 
 def getNormalizationParams(variable_index):
-    data = getGCMOriginPack(new_shape=True)[:, variable_index, :, :]
+    data = getGCMOriginPack()[:, variable_index, :, :]
     return data.mean(), data.std()
 
 def normalize_variable(data, variable_index):

@@ -1,5 +1,6 @@
+# Please implement this code to start training.
+
 import cv2
-from pydantic import NoneStr
 import torch
 import os
 import numpy as np
@@ -37,9 +38,11 @@ def _resize_GLASS(origin_label):
                                     interpolation=cv2.INTER_CUBIC)
 
 def getDEM() -> torch.Tensor:
+    # This function should return a DEM
     return torch.tensor(np.load('/home/zxhy0712/CMIP_PP/data/DEM/DEM_960_1440.npy'), dtype=torch.float32).unsqueeze(0)
 
 def _getGLASS_LAI_by_yearmonth(year, month) -> np.ndarray:
+    # Load the observation LAI in high resolution (GLASS)
     return gdal_array.LoadFile(f'/home/zxhy0712/CMIP_PP/data/GLASS/LAI/{year}/{year}_{month}.tif')
 
 def _getGLASS_LAI_by_index(index) -> np.ndarray:
@@ -56,12 +59,10 @@ def getGLASSLAI(index_or_year, none_or_month=None) -> np.ndarray:
 
 def getERA_PR(normalization=False) -> np.ndarray:
     if not normalization:
+        # return ERA precipitation data
         return np.load('/home/zxhy0712/CMIP_PP/data/pr/pr.npy')
     else:
         return normalize_given_data(getERA_PR(normalization=False))
-    
-def getERA_TA() -> torch.Tensor:
-    return torch.tensor(np.load('/home/zxhy0712/CMIP_PP/data/ta/ta.npy'))
 
 def getGLASS_NODATA(stack=1) -> np.ndarray:
     if stack == 1:
@@ -75,10 +76,9 @@ def getERAEachPressuresData(predictor, pressure, normalization=False):
         variable_string = 'r'
     elif predictor == Predictor.Temperature_each_pressure:
         variable_string = 't'
-    elif predictor == Predictor.Precipitation_each_pressure:
-        variable_string = 'crwc'
 
     if not normalization:
+        # return ERA 5 data of Relative_humidity and temperature in each pressure
         return np.load(f'/home/zxhy0712/CMIP_PP/data/ERA_Pressures/{variable_string}/{pressure}/{variable_string}_{pressure}.nc.npy').astype(np.float32)
     else:
         return normalize_given_data(getERAEachPressuresData(predictor, pressure, normalization=False))
@@ -96,7 +96,8 @@ def getFeaturePack(normalization=True) -> np.ndarray:
     return np.concatenate([era_datapack, PR], axis=1)
 
 # Read GCM
-def getGCM_PR(new_shape=False) -> torch.Tensor:
+def getGCM_PR() -> torch.Tensor:
+    # read the precipitation from GCM
     data = np.load('/home/zxhy0712/CMIP_PP/data/pr_GCM/pr.npy')
     result = np.zeros((384, 60, 90))
     for t in range(384):
@@ -106,22 +107,19 @@ def getGCM_PR(new_shape=False) -> torch.Tensor:
 def getGCM_TA() -> torch.Tensor:
     return np.load('/home/zxhy0712/CMIP_PP/data/ta_GCM/ta.npy')
 
-def getGCMOriginPack(new_shape=False, normalization=False) -> np.ndarray:
+def getGCMOriginPack() -> np.ndarray:
     """return shape: (384, 9, 60, 90)"""
-    if new_shape:
-        if normalization:
-            d = np.load('/home/zxhy0712/CMIP_PP/data/GCM_pack/GCM_pack.npy')
-            for v in range(9):
-                d[:, v, :, :] = normalize_variable(d[:, v, :, :], v)
-            return d
-        else:
-            return np.load('/home/zxhy0712/CMIP_PP/data/GCM_pack/GCM_pack.npy')
-    else:
-        hur = np.load('/home/zxhy0712/CMIP_PP/data/hur_GCM/hur.npy')
-        ta = np.load('/home/zxhy0712/CMIP_PP/data/ta_GCM/ta.npy')
-        pr = np.expand_dims(getGCM_PR(), 1)
 
-        return np.concatenate([hur, ta, pr], axis=1)
+    # this is a GCM data pack as following shape: (384, 9, 60, 90)
+    # axis 1 (384) is the time from 1984.1 to 2014.12
+    # axis 2 (9) is the variables, following [r500, r700, r850, r1000, t500, t700, t850, t1000, pr].
+    # r = relative humidity, t = air temperature, pr = precipitation
+    # axis 3 (60) and axis 4 (90) are the size of GCM data.
+    d = np.load('/home/zxhy0712/CMIP_PP/data/GCM_pack/GCM_pack.npy')
+    for v in range(9):
+        d[:, v, :, :] = normalize_variable(d[:, v, :, :], v)
+    return d
+
 
 def getGCMCalibratedPack(calibration_type=CalibrationType.Quantile) -> np.ndarray:
     if calibration_type == CalibrationType.Quantile:
@@ -144,6 +142,13 @@ def getGCMCalibratedPackNormalized(calibration_type=CalibrationType.Quantile) ->
 
 def getFutureDatapack(experiment, normalization=False) -> np.ndarray:
     if not normalization:
+        # this is a future feature pack as following shape: (1032, 9, 60, 90)
+        # Note the future feature pack is from GCMs.
+        # axis 1 (1032) is the time from 2015.1 to 2100.12
+        # axis 2 (9) is the variables, following [r500, r700, r850, r1000, t500, t700, t850, t1000, pr].
+        # r = relative humidity, t = air temperature, pr = precipitation
+        # axis 3 (60) and axis 4 (90) are the size of GCM data.
+        
         return np.load(f'/home/zxhy0712/CMIP_PP/data/Future_datapack/future_datapack_{experiment.strip().lower()}.npy')
     else:
         d = getFutureDatapack(experiment, normalization=False)
@@ -163,45 +168,3 @@ def getFutureDatapackCalibrated(experiment, normalization=True, used_data_versio
             d[:, v, :, :] = normalize_variable(d[:, v, :, :], v)
         return d
     
-
-# def getGCMFutureDatapack(variable, experiment):
-#     return np.load(f'/home/zxhy0712/CMIP_PP/data/future_vegetation_GCM/{Predictand.code_to_text(variable).lower()}/{experiment}/{Predictand.code_to_text(variable).lower()}_{experiment}.npy')
-
-# def getGCMFuture(variable, experiment, year_or_index, month_or_none=None):
-#     SCALE = 1
-#     if month_or_none == None:
-#         idx = year_or_index
-#     else:
-#         idx = (year_or_index - 2015) * 12 + month_or_none - 1
-    
-#     d = getGCMFutureDatapack(variable, experiment)[idx, :, :] * SCALE
-#     d = _resize_GCM_vegetation(d)
-#     return np.where(d < -99, np.nan, d)
-
-# def getGCMFutureCalibratedDatapack(variable, experiment):
-#     return np.load(f'/home/zxhy0712/CMIP_PP/data/future_vegetation_GCM/{Predictand.code_to_text(variable).lower()}/{experiment}/calibrated_{Predictand.code_to_text(variable).lower()}_{experiment}.npy')
-
-
-# def getGCMCalibratedFuture(variable, experiment, year_or_index, month_or_none=None):
-#     SCALE = 1
-#     if month_or_none == None:
-#         idx = year_or_index
-#     else:
-#         idx = (year_or_index - 2015) * 12 + month_or_none - 1
-    
-#     d = getGCMFutureCalibratedDatapack(variable, experiment)[idx, :, :] * SCALE
-#     d = _resize_GCM_vegetation(d)
-#     return np.where(d < -99, np.nan, d)
-
-# def getHistoricalGCMGPP() -> np.ndarray:
-#     data = np.load('/home/zxhy0712/CMIP_PP/data/gpp/gpp.npy')
-#     return np.array([cv2.resize(data[t, :, :], (1440, 960), interpolation=cv2.INTER_NEAREST) for t in range(data.shape[0])])
-
-# def getHistoricalGCMLAI() -> np.ndarray:
-#     data = np.load('/home/zxhy0712/CMIP_PP/data/lai/lai.npy')
-#     return np.array([cv2.resize(data[t, :, :], (1440, 960), interpolation=cv2.INTER_NEAREST) for t in range(data.shape[0])])
-
-
-# def getHistoricalGCMNPP() -> np.ndarray:
-#     data = np.load('/home/zxhy0712/CMIP_PP/data/npp/npp.npy')
-#     return np.array([cv2.resize(data[t, :, :], (1440, 960), interpolation=cv2.INTER_NEAREST) for t in range(data.shape[0])])

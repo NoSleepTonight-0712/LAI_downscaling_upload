@@ -5,6 +5,4 @@ training_result/LAI/
 *.tif
 *.zip
 *.npy
-*.jpg
-*.png
 *.pdf

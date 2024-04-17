@@ -1,3 +1,5 @@
+# Note that the output data should be furtherly resample from ~0.07 to 0.05 to reach the final result.
+
 from importlib import import_module
 
 import numpy as np
@@ -7,15 +9,11 @@ from utils.io.DataReader import getGLASSLAI
 from utils.io.PredictionDataReader import getNoChinaMask
 from utils.stats.future_stats import getPredictionYear
 
-# ! SETTINGS ! 6
-PREDICTION_BACKEND_VERSION = 2
+from backend.predict_historical import predict
+
+# model path
 RESUME_MODEL = '/home/zxhy0712/LAI_downscaling_upload/training_result/LAI/M1D1T1_20240201-234535/model_LAI_v1_E1_0.315687_20240201-234604.pytorchmodel'
 
-predict = import_module(f'backend.prediction_backend_v{PREDICTION_BACKEND_VERSION}').predict
-
-
-# ! Start Evaluation
-# Extract model params from model path
 PREDICTAND_VARIABLE = Predictand.LAI
 MODEL_VERSION = 1
 DATASET_VERSION = 1
